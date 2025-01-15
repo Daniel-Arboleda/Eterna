@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from decouple import Config, RepositoryEnv
+from decouple import Config, Csv
 from dotenv import load_dotenv
 import environ
 from datetime import timedelta
@@ -71,9 +71,10 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'SIGNING_KEY': os.getenv("JWT_SECRET_KEY"),
+    'SIGNING_KEY': os.getenv("JWT_SECRET_KEY", default='tu-clave-secreta-aqui'),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
-
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -134,17 +135,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # configurar un backend de correo de prueba en Django
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-
-
-# configurado el backend de correo en Django
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.example.com'  # Reemplaza con tu servidor de correo
-# EMAIL_PORT = 587  # Usualmente 587 para TLS
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your_email@example.com'  # Reemplaza con tu correo
-# EMAIL_HOST_PASSWORD = 'your_email_password'  # Reemplaza con tu contraseña
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desarrollo
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -160,3 +151,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Configuración de API Gateway y otros valores generales
 API_GATEWAY_URL = env('API_GATEWAY_URL', default='http://localhost:8000')
 COMMON_SECRET_KEY = env('COMMON_SECRET_KEY', default='fallback-common-secret-key')
+
+AUTH_USER_MODEL = 'users.User'  # Asegúrate de que 'users.User' coincida con tu modelo de usuario personalizado
+

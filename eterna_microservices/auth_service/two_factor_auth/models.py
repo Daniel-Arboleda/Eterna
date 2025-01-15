@@ -2,9 +2,11 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+
 
 class TwoFactorAuth(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     secret_key = models.CharField(max_length=255, blank=True, null=True)
     is_enabled = models.BooleanField(default=False)
 
