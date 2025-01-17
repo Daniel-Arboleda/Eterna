@@ -57,12 +57,7 @@ class RegisterView(APIView):
             )
 
 
-# Vista para manejar el login (ejemplo simplificado)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_exempt
-def login(request):
-    return JsonResponse({'message': 'Punto de entrada para login (implementar lógica).'}) 
+
 
 # Vista para obtener datos de la cuenta del usuario autenticado
 @api_view(['GET'])
@@ -75,8 +70,10 @@ def account(request):
     """
     user = request.user  # Usuario autenticado
     return Response({
+        'id': user.id,
         'email': user.email,
         'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+        # 'created_at': user.create_at
     }, status=status.HTTP_200_OK)
 
 # Vista para obtener un usuario por ID
@@ -91,8 +88,10 @@ def get_user(request, user_id):
         user = User.objects.get(id=user_id)
 
         return Response({
+            'id': user.id,
             'email': user.email,
-            'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S')
+            'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+            # 'role': rele.name
         }, status=status.HTTP_200_OK)
     except User.DoesNotExist:
         return Response({'error': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
