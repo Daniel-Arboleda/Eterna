@@ -39,6 +39,8 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='').split(',')
 # Cargar variables de entorno para el entorno de desarrollo
 load_dotenv()
 
+
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -65,6 +67,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
 }
 
@@ -74,6 +77,7 @@ SIMPLE_JWT = {
     'SIGNING_KEY': os.getenv("JWT_SECRET_KEY", default='tu-clave-secreta-aqui'),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),  # Asegúrate de usar este tipo de encabezado
 }
 
 MIDDLEWARE = [
@@ -134,8 +138,33 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+
+
 # configurar un backend de correo de prueba en Django
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desarrollo
+
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}
+
+
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
