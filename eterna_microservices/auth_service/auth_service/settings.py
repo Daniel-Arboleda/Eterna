@@ -1,9 +1,10 @@
 import os
 from pathlib import Path
-from decouple import Config, Csv
+from decouple import config, Csv
 from dotenv import load_dotenv
 import environ
 from datetime import timedelta
+from django.core.cache import caches
 
 
 # Define BASE_DIR
@@ -56,10 +57,11 @@ INSTALLED_APPS = [
     'two_factor_auth',
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     # 'api',  # Cambia el nombre según corresponda
 ]
 
-REST_FRAMEWORK = {
+REST_FRAMEWORK = {  
     'DEFAULT_AUTHENTICATION_CLASSES': (
         # 'rest_framework.authentication.SessionAuthentication',
         # 'rest_framework.authentication.BasicAuthentication',
@@ -72,13 +74,32 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'SIGNING_KEY': os.getenv("JWT_SECRET_KEY", default='tu-clave-secreta-aqui'),
-    'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_ISSUED_TOKENS': True,  # Habilita el blacklist de tokens
+    'TOKEN_CACHE': caches['default'],  # Usa Redis para almacenar tokens
+    'ALGORITHM': 'HS256',                         # Algoritmo de encriptación
+    'SIGNING_KEY': os.getenv("JWT_SECRET_KEY", SECRET_KEY),                   # Clave de firma del token (usualmente tu SECRET_KEY)
     'AUTH_HEADER_TYPES': ('Bearer',),  # Asegúrate de usar este tipo de encabezado
 }
+
+# Configuración de Redis para Django
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  # Cambia según tu configuración de Redis
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
