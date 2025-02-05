@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from roles.models import Role
+from .token_storage import TokenManager
 
 
 # Vista para registrar un usuario con múltiples roles
@@ -35,7 +36,6 @@ class RegisterView(APIView):
                 return Response({'error': 'Uno o más roles no son válidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
             user = User.objects.create_user(email=email, password=password, username=username, roles=roles)
-
 
             return Response({
                 'message': 'Usuario creado con éxito.',
@@ -72,16 +72,23 @@ def account(request):
     }, status=status.HTTP_200_OK)
 
 
-# Vista para obtener un usuario por ID
+# Vista para obtener un usuario por ID, permitiendo que los administradores accedan a cualquier usuario
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user(request, user_id):
     """
     Obtener información básica de un usuario por su ID.
+    Los administradores pueden acceder a cualquier usuario.
+    Un usuario regular solo puede acceder a su propia información.
     """
+    User = get_user_model()
+
     try:
-        User = get_user_model()
         user = User.objects.get(id=user_id)
+
+        # Verificar si el usuario autenticado es administrador o si está accediendo a su propia información
+        if request.user.id != user.id and not request.user.roles.filter(name="Administrador").exists():
+            return Response({'error': 'No tienes permiso para acceder a esta información.'}, status=status.HTTP_403_FORBIDDEN)
 
         return Response({
             'id': user.id,
