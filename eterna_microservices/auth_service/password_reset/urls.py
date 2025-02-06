@@ -1,10 +1,7 @@
-# password_reset/urls.py
-
-
 from django.urls import path
-from . import views
+from .views import PasswordResetRequestView, PasswordResetConfirmView
 
 urlpatterns = [
-    path('request/', views.request_reset, name='password_reset_request'),
-    path('confirm/', views.confirm_reset, name='password_reset_confirm'),
+    path('request_reset/', PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('reset/<str:token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 ]

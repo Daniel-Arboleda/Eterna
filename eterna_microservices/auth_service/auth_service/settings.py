@@ -6,7 +6,6 @@ import environ
 from datetime import timedelta
 from django.core.cache import caches
 
-
 # Define BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -34,13 +33,12 @@ environ.Env.read_env(str(microservice_env_path))
 
 # Variables de entorno específicas de configuración
 SECRET_KEY = env('SECRET_KEY', default='fallback-secret-key')
+JWT_SECRET_KEY = env('JWT_SECRET_KEY', default=SECRET_KEY)
 DEBUG = env('DEBUG', default='False', cast=bool)
 ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='').split(',')
 
 # Cargar variables de entorno para el entorno de desarrollo
 load_dotenv()
-
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -69,14 +67,13 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',
     ),
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=8),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'SIGNING_KEY': os.getenv("JWT_SECRET_KEY", default='tu-clave-secreta-aqui'),
+    'SIGNING_KEY': env("JWT_SECRET_KEY", default=SECRET_KEY),
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
     'ROTATE_REFRESH_TOKENS': True,
@@ -163,12 +160,15 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+# Configuración de correo
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")  
 
-
-# configurar un backend de correo de prueba en Django
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desarrollo
-
-
+if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
+    EMAIL_HOST = env("EMAIL_HOST", default="smtp.eterna.com")  
+    EMAIL_PORT = env("EMAIL_PORT", default=587, cast=int)  
+    EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=True, cast=bool)  
+    EMAIL_HOST_USER = env("EMAIL_HOST_USER")  
+    EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")  
 
 LOGGING = {
     'version': 1,
@@ -184,8 +184,6 @@ LOGGING = {
         'level': 'DEBUG',
     },
 }
-
-
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'

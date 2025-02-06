@@ -8,6 +8,17 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from roles.models import Role
 from .token_storage import TokenManager
+from django.core.mail import send_mail
+
+def send_welcome_email(user_email):
+    send_mail(
+        'Bienvenido a Eterna',
+        'Gracias por registrarte en Eterna. Estamos felices de tenerte con nosotros.',
+        'no-reply@eterna.com',
+        [user_email],
+        # fail_silently=False,
+        fail_silently=True,
+    )
 
 
 # Vista para registrar un usuario con múltiples roles
@@ -38,7 +49,7 @@ class RegisterView(APIView):
             user = User.objects.create_user(email=email, password=password, username=username, roles=roles)
 
             return Response({
-                'message': 'Usuario creado con éxito.',
+                'message': 'Usuario creado con éxito. Se ha enviado un correo de bienvenida.',
                 'user_id': user.id,
                 'roles': [role.name for role in user.roles.all()],
             }, status=status.HTTP_201_CREATED)
