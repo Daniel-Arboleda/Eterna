@@ -7,21 +7,27 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from roles.models import Role
-from .token_storage import TokenManager
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
+import uuid
 
 def send_welcome_email(user_email):
-    send_mail(
-        'Bienvenido a Eterna',
-        'Gracias por registrarte en Eterna. Estamos felices de tenerte con nosotros.',
-        'no-reply@eterna.com',
-        [user_email],
-        # fail_silently=False,
-        fail_silently=True,
-    )
+    try:
+        # Generamos un UUID único para el Message-ID
+        unique_id = uuid.uuid4().hex
+        email = EmailMessage(
+            'Bienvenido a Eterna',
+            'Gracias por registrarte en Eterna. Estamos felices de tenerte con nosotros.',
+            'no-reply@eterna.com',
+            [user_email],
+            headers={'Message-ID': f'<{unique_id}@eterna.com>'}
+        )
+        email.send()
+        print(f"Correo de bienvenida enviado a: {user_email}")  # Mensaje de depuración
+    except Exception as e:
+        print(f"Error al enviar correo a {user_email}: {e}")  # Depuración de errores
+        raise Exception(f"Error al enviar correo a {user_email}: {e}")  # Lanza el error para manejarlo en la vista
 
 
-# Vista para registrar un usuario con múltiples roles
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -46,7 +52,14 @@ class RegisterView(APIView):
             if not roles.exists():
                 return Response({'error': 'Uno o más roles no son válidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            user = User.objects.create_user(email=email, password=password, username=username, roles=roles)
+            # Crear usuario
+            user = User.objects.create_user(email=email, password=password, username=username)
+            
+            # Asignar roles correctamente
+            user.roles.set(roles)
+
+            # Enviar correo de bienvenida
+            send_welcome_email(user.email)
 
             return Response({
                 'message': 'Usuario creado con éxito. Se ha enviado un correo de bienvenida.',
@@ -54,7 +67,9 @@ class RegisterView(APIView):
                 'roles': [role.name for role in user.roles.all()],
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': f'Ocurrió un error al crear el usuario: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(f"Error al crear el usuario: {str(e)}")  # Depuración de errores
+            return Response({'error': f'Ocurrió un error al procesar tu solicitud. Por favor, intenta más tarde.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 
 # Vista para obtener los roles de un usuario autenticado
