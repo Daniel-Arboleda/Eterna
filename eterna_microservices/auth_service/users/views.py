@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from roles.models import Role
+import re  # Para las expresiones regulares
 
 # Configuración de logging
 logger = logging.getLogger(__name__)
@@ -40,6 +41,27 @@ def send_welcome_email(user_email):
         logger.error(f"Error al enviar correo a {user_email}: {e}")
         raise Exception(f"Error al enviar correo a {user_email}: {e}")  # Lanza el error para manejarlo en la vista
 
+# Función para validar contraseñas robustas
+def validate_password(password):
+    # Requerimientos:
+    # 1. Mínimo 8 caracteres
+    # 2. Al menos una letra mayúscula
+    # 3. Al menos una letra minúscula
+    # 4. Al menos un número
+    # 5. Al menos un carácter especial
+    if len(password) < 8:
+        raise Exception('La contraseña debe tener al menos 8 caracteres.')
+    if not re.search(r'[A-Z]', password):
+        raise Exception('La contraseña debe contener al menos una letra mayúscula.')
+    if not re.search(r'[a-z]', password):
+        raise Exception('La contraseña debe contener al menos una letra minúscula.')
+    if not re.search(r'[0-9]', password):
+        raise Exception('La contraseña debe contener al menos un número.')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        raise Exception('La contraseña debe contener al menos un carácter especial.')
+    
+    return True
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -64,6 +86,9 @@ class RegisterView(APIView):
         try:
             # Validación del correo electrónico
             validate_user_email(email)
+            
+            # Validación de la contraseña
+            validate_password(password)
 
             roles = Role.objects.filter(name__in=role_names)  # Buscar todos los roles por nombre
             if not roles.exists():
@@ -85,7 +110,7 @@ class RegisterView(APIView):
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f"Error al crear el usuario: {str(e)}")
-            return Response({'error': 'Ocurrió un error al procesar tu solicitud. Por favor, intenta más tarde.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': f'Ocurrió un error al procesar tu solicitud: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Vista para obtener los roles de un usuario autenticado
 @api_view(['GET'])
