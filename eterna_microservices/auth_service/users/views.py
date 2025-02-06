@@ -1,4 +1,8 @@
-from django.views.decorators.csrf import csrf_exempt
+import uuid
+import logging
+from django.core.mail import send_mail, EmailMessage
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.http import JsonResponse
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,9 +11,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from roles.models import Role
-from django.core.mail import send_mail, EmailMessage
-import uuid
 
+# Configuración de logging
+logger = logging.getLogger(__name__)
+
+# Función para validar el formato del correo
+def validate_user_email(email):
+    try:
+        validate_email(email)
+    except ValidationError:
+        raise Exception('El correo electrónico no es válido.')
+
+# Función para enviar el correo de bienvenida
 def send_welcome_email(user_email):
     try:
         # Generamos un UUID único para el Message-ID
@@ -22,11 +35,10 @@ def send_welcome_email(user_email):
             headers={'Message-ID': f'<{unique_id}@eterna.com>'}
         )
         email.send()
-        print(f"Correo de bienvenida enviado a: {user_email}")  # Mensaje de depuración
+        logger.info(f"Correo de bienvenida enviado a: {user_email}")
     except Exception as e:
-        print(f"Error al enviar correo a {user_email}: {e}")  # Depuración de errores
+        logger.error(f"Error al enviar correo a {user_email}: {e}")
         raise Exception(f"Error al enviar correo a {user_email}: {e}")  # Lanza el error para manejarlo en la vista
-
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -35,10 +47,12 @@ class RegisterView(APIView):
         User = get_user_model()
         data = request.data
 
+        # Obtención de datos de entrada
         email = data.get('email')
         password = data.get('password')
         role_names = data.get('roles', ['Cliente'])  # Lista de roles, por defecto "Cliente"
 
+        # Validaciones iniciales
         if not email or not password:
             return Response({'error': 'El campo email y contraseña son obligatorios.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -48,17 +62,20 @@ class RegisterView(APIView):
         username = data.get('username', email)
 
         try:
+            # Validación del correo electrónico
+            validate_user_email(email)
+
             roles = Role.objects.filter(name__in=role_names)  # Buscar todos los roles por nombre
             if not roles.exists():
                 return Response({'error': 'Uno o más roles no son válidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Crear usuario
+            # Crear el usuario
             user = User.objects.create_user(email=email, password=password, username=username)
             
             # Asignar roles correctamente
             user.roles.set(roles)
 
-            # Enviar correo de bienvenida
+            # Enviar el correo de bienvenida
             send_welcome_email(user.email)
 
             return Response({
@@ -67,10 +84,8 @@ class RegisterView(APIView):
                 'roles': [role.name for role in user.roles.all()],
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print(f"Error al crear el usuario: {str(e)}")  # Depuración de errores
-            return Response({'error': f'Ocurrió un error al procesar tu solicitud. Por favor, intenta más tarde.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
+            logger.error(f"Error al crear el usuario: {str(e)}")
+            return Response({'error': 'Ocurrió un error al procesar tu solicitud. Por favor, intenta más tarde.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Vista para obtener los roles de un usuario autenticado
 @api_view(['GET'])
@@ -78,7 +93,6 @@ class RegisterView(APIView):
 def user_roles(request):
     user = request.user
     return Response({'roles': [role.name for role in user.roles.all()]}, status=status.HTTP_200_OK)
-
 
 # Vista para obtener datos de la cuenta del usuario autenticado
 @api_view(['GET'])
@@ -96,7 +110,6 @@ def account(request):
         'email': user.email,
         'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
     }, status=status.HTTP_200_OK)
-
 
 # Vista para obtener un usuario por ID, permitiendo que los administradores accedan a cualquier usuario
 @api_view(['GET'])
