@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 import environ
 from datetime import timedelta
 from django.core.cache import caches
+import logging
+import logging.config
+import colorlog
+
 
 # Define BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,10 +52,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',  # Aplicación interna de Django
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'two_factor',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
     'users',
     'roles',
     'user_sessions',  # Renombrado desde 'sessions'
     'password_reset',
+    'email_verification',
     'two_factor_auth',
     'rest_framework',
     'rest_framework_simplejwt',
@@ -105,7 +113,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware'
+    'django_otp.middleware.OTPMiddleware',
 ]
 
 ROOT_URLCONF = 'auth_service.urls'
@@ -170,20 +179,50 @@ if EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend":
     EMAIL_HOST_USER = env("EMAIL_HOST_USER")  
     EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")  
 
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)  # Asegurar que la carpeta logs exista
+
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "colored": {
+            "()": "colorlog.ColoredFormatter",
+            "format": "%(log_color)s%(levelname)s %(asctime)s %(module)s: %(message)s",
+            "log_colors": {
+                "DEBUG": "cyan",
+                "INFO": "green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
+        },
+        "file": {
+            "format": "%(levelname)s %(asctime)s %(module)s: %(message)s",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
+    "handlers": {
+        "console": {
+            "level": "INFO",  # Evita que se impriman los DEBUG en terminal
+            "class": "logging.StreamHandler",
+            "formatter": "colored",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": LOG_DIR / "debug.log",  # Guardar en logs/debug.log
+            "formatter": "file",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
     },
 }
+
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
