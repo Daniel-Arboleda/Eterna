@@ -92,6 +92,14 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),  # Asegúrate de usar este tipo de encabezado
 }
 
+OTP_REDIS_CONFIG = {
+    'HOST': '127.0.0.1',
+    'PORT': '6379',
+    'DB': 1,
+    'AOF': True,  # Registro de cambios en tiempo real
+    'RDB': True,  # Snapshots periódicos
+}
+
 # Configuración de Redis para Django
 CACHES = {
     'default': {
