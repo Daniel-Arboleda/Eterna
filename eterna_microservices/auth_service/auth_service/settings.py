@@ -5,10 +5,11 @@ from dotenv import load_dotenv
 import environ
 from datetime import timedelta
 from django.core.cache import caches
+from django.core.management import execute_from_command_line
 import logging
 import logging.config
 import colorlog
-
+import sys
 
 # Define BASE_DIR
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +45,12 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS', default='').split(',')
 # Cargar variables de entorno para el entorno de desarrollo
 load_dotenv()
 
+
+if "createsuperuser" in sys.argv:
+    raise Exception("⚠️ La creación de superusuarios está bloqueada. ❌ Use el script autorizado.")
+
+
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -61,6 +68,7 @@ INSTALLED_APPS = [
     'password_reset',
     'email_verification',
     'two_factor_auth',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -117,6 +125,7 @@ SESSION_CACHE_ALIAS = 'default'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -125,6 +134,15 @@ MIDDLEWARE = [
     'django_otp.middleware.OTPMiddleware',  # Línea separada correctamente
 
 ]
+
+# Configuración de CORS (para comunicación entre microservicios)
+CORS_ALLOW_ALL_ORIGINS = True  # Ajusta según necesidad
+
+# Permitir solicitudes desde tu frontend en producción
+# CORS_ALLOWED_ORIGINS = [
+#     "https://miappfrontend.com",
+#     "http://localhost:3000",  # Si desarrollas en local
+# ]
 
 ROOT_URLCONF = 'auth_service.urls'
 
@@ -231,7 +249,6 @@ LOGGING = {
         },
     },
 }
-
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
